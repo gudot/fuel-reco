@@ -1,0 +1,142 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  ACCOUNTANT
+  OPERATIONS
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(OPERATIONS)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  purchases   FuelPurchase[]   @relation("PurchaseRecordedBy")
+  allocations FuelAllocation[] @relation("AllocationRecordedBy")
+  mileageLogs MileageLog[]     @relation("MileageRecordedBy")
+  auditLogs   AuditLog[]
+}
+
+model Driver {
+  id             String   @id @default(cuid())
+  employeeNumber String?  @unique
+  name           String
+  phone          String?
+  licenseNumber  String?
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  vehicles Vehicle[]
+}
+
+model Vehicle {
+  id                       String   @id @default(cuid())
+  registrationNumber       String   @unique
+  make                     String
+  model                    String
+  department               String
+  fuelType                 String   @default("Diesel")
+  tankCapacityLitres       Decimal? @db.Decimal(10, 2)
+  expectedKmPerLitre       Decimal  @db.Decimal(8, 2)
+  anomalyTolerancePercent  Decimal  @default(15) @db.Decimal(5, 2)
+  currentOdometerKm        Decimal? @db.Decimal(12, 2)
+  active                   Boolean  @default(true)
+  driverId                 String?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  driver      Driver?          @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  allocations FuelAllocation[]
+  mileageLogs MileageLog[]
+
+  @@index([driverId])
+}
+
+model FuelPurchase {
+  id            String   @id @default(cuid())
+  supplier      String
+  invoiceNumber String?  @unique
+  purchasedAt   DateTime
+  litres        Decimal  @db.Decimal(12, 2)
+  unitCost      Decimal  @db.Decimal(12, 2)
+  totalCost     Decimal  @db.Decimal(14, 2)
+  notes         String?
+  createdById   String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  createdBy User @relation("PurchaseRecordedBy", fields: [createdById], references: [id])
+
+  @@index([purchasedAt])
+  @@index([createdById])
+}
+
+model FuelAllocation {
+  id                   String   @id @default(cuid())
+  vehicleId            String
+  issuedAt             DateTime
+  litres               Decimal  @db.Decimal(12, 2)
+  odometerKm           Decimal  @db.Decimal(12, 2)
+  voucherNumber        String?  @unique
+  purpose              String
+  destination          String?
+  remainingStockLitres Decimal  @db.Decimal(12, 2)
+  recordedById         String
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  vehicle    Vehicle @relation(fields: [vehicleId], references: [id])
+  recordedBy User    @relation("AllocationRecordedBy", fields: [recordedById], references: [id])
+
+  @@index([vehicleId])
+  @@index([issuedAt])
+  @@index([recordedById])
+}
+
+model MileageLog {
+  id           String   @id @default(cuid())
+  vehicleId    String
+  recordedAt   DateTime
+  odometerKm   Decimal  @db.Decimal(12, 2)
+  distanceKm   Decimal  @db.Decimal(12, 2)
+  notes        String?
+  recordedById String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  vehicle    Vehicle @relation(fields: [vehicleId], references: [id])
+  recordedBy User    @relation("MileageRecordedBy", fields: [recordedById], references: [id])
+
+  @@index([vehicleId])
+  @@index([recordedAt])
+  @@index([recordedById])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([entity])
+  @@index([createdAt])
+}

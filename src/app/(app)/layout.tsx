@@ -1,0 +1,18 @@
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth";
+import { AppShell } from "@/components/app-shell";
+import { cookies } from "next/headers";
+
+export default async function ProtectedLayout({
+  children
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  return <AppShell user={user}>{children}</AppShell>;
+}
