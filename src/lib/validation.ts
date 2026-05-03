@@ -1,6 +1,12 @@
 import { z } from "zod";
 
 const emptyToUndefined = (value: unknown) => (value === "" ? undefined : value);
+const emptyToNull = (value: unknown) => (value === "" ? null : value);
+const stringToBoolean = (value: unknown) => {
+  if (value === "true") return true;
+  if (value === "false") return false;
+  return value;
+};
 
 export const loginSchema = z.object({
   email: z.string().email(),
@@ -16,11 +22,23 @@ export const userCreateSchema = z.object({
   password: z.string().min(8)
 });
 
+export const userUpdateSchema = z.object({
+  name: z.string().min(2).optional(),
+  email: z.string().email().optional(),
+  role: roleSchema.optional(),
+  active: z.preprocess(stringToBoolean, z.boolean().optional()),
+  password: z.preprocess(emptyToUndefined, z.string().min(8).optional())
+});
+
 export const driverCreateSchema = z.object({
   name: z.string().min(2),
   employeeNumber: z.preprocess(emptyToUndefined, z.string().min(2).optional()),
   phone: z.preprocess(emptyToUndefined, z.string().min(3).optional()),
   licenseNumber: z.preprocess(emptyToUndefined, z.string().min(2).optional())
+});
+
+export const driverUpdateSchema = driverCreateSchema.partial().extend({
+  active: z.preprocess(stringToBoolean, z.boolean().optional())
 });
 
 export const vehicleCreateSchema = z.object({
@@ -34,6 +52,11 @@ export const vehicleCreateSchema = z.object({
   anomalyTolerancePercent: z.coerce.number().min(1).max(100).default(15),
   currentOdometerKm: z.preprocess(emptyToUndefined, z.coerce.number().nonnegative().optional()),
   driverId: z.preprocess(emptyToUndefined, z.string().optional())
+});
+
+export const vehicleUpdateSchema = vehicleCreateSchema.partial().extend({
+  driverId: z.preprocess(emptyToNull, z.string().nullable().optional()),
+  active: z.preprocess(stringToBoolean, z.boolean().optional())
 });
 
 export const fuelPurchaseCreateSchema = z.object({

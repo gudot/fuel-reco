@@ -56,6 +56,45 @@ const purchaseColumns: ColumnDef<PurchaseRecord>[] = [
   { header: "Cost", cell: ({ row }) => `$${formatNumber(row.original.totalCost)}` }
 ];
 
+function buildTrendLine(points: Array<{ date: string; litres: number }>, maxTrend: number) {
+  const width = 640;
+  const height = 160;
+  const paddingX = 20;
+  const paddingY = 18;
+  const plotWidth = width - paddingX * 2;
+  const plotHeight = height - paddingY * 2;
+  const divisor = Math.max(points.length - 1, 1);
+  const coordinates = points.map((point, index) => {
+    const x = paddingX + (index / divisor) * plotWidth;
+    const y = paddingY + plotHeight - (point.litres / maxTrend) * plotHeight;
+
+    return { ...point, x, y };
+  });
+
+  if (coordinates.length === 1) {
+    const point = coordinates[0];
+    const path = `M ${paddingX} ${point.y} L ${width - paddingX} ${point.y}`;
+
+    return { coordinates, path, areaPath: `${path} L ${width - paddingX} ${height - paddingY} L ${paddingX} ${height - paddingY} Z`, width, height };
+  }
+
+  const path = coordinates
+    .map((point, index) => {
+      if (index === 0) {
+        return `M ${point.x} ${point.y}`;
+      }
+
+      const previous = coordinates[index - 1];
+      const controlOffset = (point.x - previous.x) / 2;
+
+      return `C ${previous.x + controlOffset} ${previous.y}, ${point.x - controlOffset} ${point.y}, ${point.x} ${point.y}`;
+    })
+    .join(" ");
+  const areaPath = `${path} L ${coordinates[coordinates.length - 1].x} ${height - paddingY} L ${coordinates[0].x} ${height - paddingY} Z`;
+
+  return { coordinates, path, areaPath, width, height };
+}
+
 const ICONS = {
   droplet: (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -109,6 +148,7 @@ export function DashboardClient() {
   }
 
   const maxTrend = Math.max(...data.allocationTrend.map((point) => point.litres), 1);
+  const trendLine = data.allocationTrend.length ? buildTrendLine(data.allocationTrend, maxTrend) : null;
 
   return (
     <>
@@ -132,15 +172,22 @@ export function DashboardClient() {
         <div className="panel">
           <h5>30-day allocation trend</h5>
           <div className="trend" aria-label="Fuel allocation trend">
-            {data.allocationTrend.length ? (
-              data.allocationTrend.map((point) => (
-                <span
-                  className="trend-bar"
-                  key={`${point.date}-${point.litres}`}
-                  title={`${point.date}: ${point.litres} L`}
-                  style={{ height: `${Math.max(8, (point.litres / maxTrend) * 100)}%`, width: `${100 / data.allocationTrend.length}%` }}
-                />
-              ))
+            {trendLine ? (
+              <svg className="trend-line-chart" viewBox={`0 0 ${trendLine.width} ${trendLine.height}`} role="img">
+                <defs>
+                  <linearGradient id="allocationTrendFill" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stopColor="#f3b43f" stopOpacity="0.32" />
+                    <stop offset="100%" stopColor="#0d5c4d" stopOpacity="0.04" />
+                  </linearGradient>
+                </defs>
+                <path className="trend-area" d={trendLine.areaPath} />
+                <path className="trend-line" d={trendLine.path} />
+                {trendLine.coordinates.map((point) => (
+                  <circle className="trend-point" cx={point.x} cy={point.y} key={`${point.date}-${point.litres}`} r="4">
+                    <title>{`${point.date}: ${point.litres} L`}</title>
+                  </circle>
+                ))}
+              </svg>
             ) : (
               <p>No allocations recorded in the last 30 days.</p>
             )}
@@ -165,4 +212,3 @@ export function DashboardClient() {
     </>
   );
 }
-
