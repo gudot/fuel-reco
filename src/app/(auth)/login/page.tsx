@@ -47,13 +47,10 @@ export default async function LoginPage() {
         {/* Login card */}
         <div className="auth-card-redesign" data-testid="login-card">
           <div className="auth-card-header">
-            <p className="auth-kicker">Secure Access</p>
             <h2>Welcome back</h2>
             <p>Sign in to manage fuel inventory, allocations and view reconciliation reports.</p>
           </div>
-
           <LoginForm />
-
           <div className="auth-card-footer">
             <p>Need any help? Contact wekwaGudo or Ropah your system admins.</p>
           </div>

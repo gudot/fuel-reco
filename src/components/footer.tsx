@@ -35,16 +35,16 @@ export default function MainFooter() {
           <Image
             src="/fpIcon.png"
             alt="First Pack Marketing"
-            height={60}
-            width={60}
+            height={70}
+            width={70}
             style={{
               height: "auto",
               width: "auto",
               objectFit: "contain",
-              borderRadius: "5px",
+              borderRadius: "6px",
             }}
           />
-          <div>
+          <div className="footer-brand-copy">
             <div
               style={{
                 fontWeight: 700,
@@ -52,17 +52,13 @@ export default function MainFooter() {
                 lineHeight: 1.2,
               }}
             >
-              First Pack Marketing
-            </div>
-            <div
-              style={{
+              First Pack Marketing <br /><span style={{
                 fontSize: "0.8rem",
                 color: "rgba(255,255,255,0.6)",
                 lineHeight: 1.2,
                 marginTop: "0.15rem",
-              }}
-            >
-              For First Class Experience
+              }} >For First Class Experience</span>
+              <div className="footer-developer-credit">developed by wekwaGudo</div>
             </div>
           </div>
         </div>
