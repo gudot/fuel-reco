@@ -37,7 +37,7 @@ export function LoginForm() {
         </div>
         <div className="field full">
           <label htmlFor="password">Password</label>
-          <input id="password" name="password" type="password" defaultValue=" " required />
+          <input id="password" name="password" type="password" defaultValue="" required />
         </div>
       </div>
       {error ? <div className="error">{error}</div> : null}
