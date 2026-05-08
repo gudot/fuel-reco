@@ -11,15 +11,17 @@ type AllocationRecord = {
   id: string;
   issuedAt: string;
   litres: number;
+  fuelType: string;
   purpose: string;
   remainingStockLitres: number;
-  vehicle?: { registrationNumber: string };
+  vehicle?: { registrationNumber: string; fuelType: string };
 };
 
 type PurchaseRecord = {
   id: string;
   purchasedAt: string;
   litres: number;
+  fuelType: string;
   supplier: string;
   totalCost: number;
 };
@@ -29,7 +31,7 @@ type DashboardResponse = {
   anomalies: ReconciliationRow[];
   recentAllocations: AllocationRecord[];
   recentPurchases: PurchaseRecord[];
-  allocationTrend: Array<{ date: string; litres: number }>;
+  allocationTrend: Array<{ date: string; dieselLitres: number; petrolLitres: number }>;
 };
 
 const anomalyColumns: ColumnDef<ReconciliationRow>[] = [
@@ -44,6 +46,7 @@ const anomalyColumns: ColumnDef<ReconciliationRow>[] = [
 const allocationColumns: ColumnDef<AllocationRecord>[] = [
   { header: "Date", cell: ({ row }) => formatDate(row.original.issuedAt) },
   { header: "Vehicle", cell: ({ row }) => row.original.vehicle?.registrationNumber ?? "Unknown" },
+  { header: "Fuel", cell: ({ row }) => <span className="badge ok">{row.original.fuelType}</span> },
   { header: "Litres", cell: ({ row }) => formatNumber(row.original.litres, " L") },
   { header: "Purpose", accessorKey: "purpose" },
   { header: "Stock After", cell: ({ row }) => formatNumber(row.original.remainingStockLitres, " L") }
@@ -52,6 +55,7 @@ const allocationColumns: ColumnDef<AllocationRecord>[] = [
 const purchaseColumns: ColumnDef<PurchaseRecord>[] = [
   { header: "Date", cell: ({ row }) => formatDate(row.original.purchasedAt) },
   { header: "Supplier", accessorKey: "supplier" },
+  { header: "Fuel", cell: ({ row }) => <span className="badge ok">{row.original.fuelType}</span> },
   { header: "Litres", cell: ({ row }) => formatNumber(row.original.litres, " L") },
   { header: "Cost", cell: ({ row }) => `$${formatNumber(row.original.totalCost)}` }
 ];
@@ -147,8 +151,14 @@ export function DashboardClient() {
     return <div className="error">{error instanceof Error ? error.message : "Unable to load dashboard."}</div>;
   }
 
-  const maxTrend = Math.max(...data.allocationTrend.map((point) => point.litres), 1);
-  const trendLine = data.allocationTrend.length ? buildTrendLine(data.allocationTrend, maxTrend) : null;
+  const dieselTrend = data.allocationTrend.map((point) => ({ date: point.date, litres: point.dieselLitres }));
+  const petrolTrend = data.allocationTrend.map((point) => ({ date: point.date, litres: point.petrolLitres }));
+  const maxTrend = Math.max(
+    ...data.allocationTrend.flatMap((point) => [point.dieselLitres, point.petrolLitres]),
+    1
+  );
+  const dieselTrendLine = dieselTrend.length ? buildTrendLine(dieselTrend, maxTrend) : null;
+  const petrolTrendLine = petrolTrend.length ? buildTrendLine(petrolTrend, maxTrend) : null;
 
   return (
     <>
@@ -160,10 +170,14 @@ export function DashboardClient() {
       </header>
 
       <section className="grid cards">
-        <StatCard label="Current Stock" value={formatNumber(data.summary.currentStockLitres, " L")} accent="brand" icon={ICONS.droplet} />
-        <StatCard label="Month Purchased" value={formatNumber(data.summary.monthPurchasedLitres, " L")} accent="fuel" icon={ICONS.cart} />
-        <StatCard label="Month Allocated" value={formatNumber(data.summary.monthAllocatedLitres, " L")} accent="info" icon={ICONS.arrowOut} />
-        <StatCard label="Today Allocated" value={formatNumber(data.summary.todayAllocatedLitres, " L")} accent="violet" icon={ICONS.calendar} />
+        <StatCard label="Diesel Stock" value={formatNumber(data.summary.dieselStockLitres, " L")} accent="fuel" icon={ICONS.droplet} />
+        <StatCard label="Petrol Stock" value={formatNumber(data.summary.petrolStockLitres, " L")} accent="info" icon={ICONS.droplet} />
+        <StatCard label="Month Diesel Purchased" value={formatNumber(data.summary.monthDieselPurchasedLitres, " L")} accent="fuel" icon={ICONS.cart} />
+        <StatCard label="Month Petrol Purchased" value={formatNumber(data.summary.monthPetrolPurchasedLitres, " L")} accent="info" icon={ICONS.cart} />
+        <StatCard label="Month Diesel Allocated" value={formatNumber(data.summary.monthDieselAllocatedLitres, " L")} accent="fuel" icon={ICONS.arrowOut} />
+        <StatCard label="Month Petrol Allocated" value={formatNumber(data.summary.monthPetrolAllocatedLitres, " L")} accent="info" icon={ICONS.arrowOut} />
+        <StatCard label="Today Diesel Allocated" value={formatNumber(data.summary.todayDieselAllocatedLitres, " L")} accent="fuel" icon={ICONS.calendar} />
+        <StatCard label="Today Petrol Allocated" value={formatNumber(data.summary.todayPetrolAllocatedLitres, " L")} accent="info" icon={ICONS.calendar} />
         <StatCard label="Active Vehicles" value={data.summary.activeVehicles} accent="ok" icon={ICONS.truck} />
         <StatCard label="Open Anomalies" value={data.summary.openAnomalies} accent="alert" icon={ICONS.alert} />
       </section>
@@ -172,25 +186,40 @@ export function DashboardClient() {
         <div className="panel">
           <h5>30-day allocation trend</h5>
           <div className="trend" aria-label="Fuel allocation trend">
-            {trendLine ? (
-              <svg className="trend-line-chart" viewBox={`0 0 ${trendLine.width} ${trendLine.height}`} role="img">
+            {dieselTrendLine && petrolTrendLine ? (
+              <svg className="trend-line-chart" viewBox={`0 0 ${dieselTrendLine.width} ${dieselTrendLine.height}`} role="img">
                 <defs>
-                  <linearGradient id="allocationTrendFill" x1="0" x2="0" y1="0" y2="1">
+                  <linearGradient id="dieselTrendFill" x1="0" x2="0" y1="0" y2="1">
                     <stop offset="0%" stopColor="#f3b43f" stopOpacity="0.32" />
-                    <stop offset="100%" stopColor="#0d5c4d" stopOpacity="0.04" />
+                    <stop offset="100%" stopColor="#f3b43f" stopOpacity="0.04" />
+                  </linearGradient>
+                  <linearGradient id="petrolTrendFill" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stopColor="#4a9eff" stopOpacity="0.28" />
+                    <stop offset="100%" stopColor="#4a9eff" stopOpacity="0.04" />
                   </linearGradient>
                 </defs>
-                <path className="trend-area" d={trendLine.areaPath} />
-                <path className="trend-line" d={trendLine.path} />
-                {trendLine.coordinates.map((point) => (
-                  <circle className="trend-point" cx={point.x} cy={point.y} key={`${point.date}-${point.litres}`} r="4">
-                    <title>{`${point.date}: ${point.litres} L`}</title>
+                <path className="trend-area diesel" d={dieselTrendLine.areaPath} />
+                <path className="trend-area petrol" d={petrolTrendLine.areaPath} />
+                <path className="trend-line diesel" d={dieselTrendLine.path} />
+                <path className="trend-line petrol" d={petrolTrendLine.path} />
+                {dieselTrendLine.coordinates.map((point) => (
+                  <circle className="trend-point diesel" cx={point.x} cy={point.y} key={`diesel-${point.date}`} r="4">
+                    <title>{`${point.date} diesel: ${point.litres} L`}</title>
+                  </circle>
+                ))}
+                {petrolTrendLine.coordinates.map((point) => (
+                  <circle className="trend-point petrol" cx={point.x} cy={point.y} key={`petrol-${point.date}`} r="4">
+                    <title>{`${point.date} petrol: ${point.litres} L`}</title>
                   </circle>
                 ))}
               </svg>
             ) : (
               <p>No allocations recorded in the last 30 days.</p>
             )}
+          </div>
+          <div className="trend-legend">
+            <span><i className="diesel" /> Diesel</span>
+            <span><i className="petrol" /> Petrol</span>
           </div>
         </div>
         <div className="panel">

@@ -3,23 +3,23 @@ import { prisma } from "@/lib/prisma";
 import { roundNumber, toNumber } from "@/lib/number";
 import type { ReconciliationRow } from "@/lib/types";
 
-export async function getCurrentStockLitres(): Promise<number> {
+export async function getCurrentStockLitres(fuelType: string): Promise<number> {
   const [purchases, allocations] = await Promise.all([
-    prisma.fuelPurchase.aggregate({ _sum: { litres: true } }),
-    prisma.fuelAllocation.aggregate({ _sum: { litres: true } })
+    prisma.fuelPurchase.aggregate({ where: { fuelType }, _sum: { litres: true } }),
+    prisma.fuelAllocation.aggregate({ where: { fuelType }, _sum: { litres: true } })
   ]);
 
   return roundNumber(toNumber(purchases._sum.litres) - toNumber(allocations._sum.litres));
 }
 
-export async function getStockBefore(date: Date): Promise<number> {
+export async function getStockBefore(date: Date, fuelType: string): Promise<number> {
   const [purchases, allocations] = await Promise.all([
     prisma.fuelPurchase.aggregate({
-      where: { purchasedAt: { lt: date } },
+      where: { fuelType, purchasedAt: { lt: date } },
       _sum: { litres: true }
     }),
     prisma.fuelAllocation.aggregate({
-      where: { issuedAt: { lt: date } },
+      where: { fuelType, issuedAt: { lt: date } },
       _sum: { litres: true }
     })
   ]);
@@ -82,6 +82,7 @@ export async function getReconciliationRows(start: Date, end: Date): Promise<Rec
     return {
       vehicleId: vehicle.id,
       registrationNumber: vehicle.registrationNumber,
+      fuelType: vehicle.fuelType,
       driverName: vehicle.driver?.name ?? "Unassigned",
       department: vehicle.department,
       expectedKmPerLitre: roundNumber(expectedKmPerLitre),

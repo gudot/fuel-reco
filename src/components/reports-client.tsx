@@ -11,11 +11,16 @@ import { StatCard } from "@/components/stat-card";
 type DailyReport = {
   reportDate: string;
   summary: {
-    openingStockLitres: number;
-    purchasedLitres: number;
-    allocatedLitres: number;
-    closingStockLitres: number;
-    purchaseCost: number;
+    openingDieselStockLitres: number;
+    openingPetrolStockLitres: number;
+    dieselPurchasedLitres: number;
+    petrolPurchasedLitres: number;
+    dieselAllocatedLitres: number;
+    petrolAllocatedLitres: number;
+    closingDieselStockLitres: number;
+    closingPetrolStockLitres: number;
+    dieselPurchaseCost: number;
+    petrolPurchaseCost: number;
   };
   anomalies: ReconciliationRow[];
 };
@@ -23,11 +28,16 @@ type DailyReport = {
 type MonthlyReport = {
   month: string;
   summary: {
-    openingStockLitres: number;
-    purchasedLitres: number;
-    allocatedLitres: number;
-    closingStockLitres: number;
-    purchaseCost: number;
+    openingDieselStockLitres: number;
+    openingPetrolStockLitres: number;
+    dieselPurchasedLitres: number;
+    petrolPurchasedLitres: number;
+    dieselAllocatedLitres: number;
+    petrolAllocatedLitres: number;
+    closingDieselStockLitres: number;
+    closingPetrolStockLitres: number;
+    dieselPurchaseCost: number;
+    petrolPurchaseCost: number;
     anomalyCount: number;
   };
   reconciliation: ReconciliationRow[];
@@ -35,6 +45,7 @@ type MonthlyReport = {
 
 const reconciliationColumns: ColumnDef<ReconciliationRow>[] = [
   { header: "Vehicle", accessorKey: "registrationNumber" },
+  { header: "Fuel", cell: ({ row }) => <span className="badge ok">{row.original.fuelType}</span> },
   { header: "Driver", accessorKey: "driverName" },
   { header: "Expected", cell: ({ row }) => formatNumber(row.original.expectedKmPerLitre, " km/L") },
   { header: "Allocated", cell: ({ row }) => formatNumber(row.original.allocatedLitres, " L") },
@@ -130,9 +141,12 @@ export function ReportsClient() {
           {daily.data ? (
             <>
               <div className="grid three" style={{ marginTop: "1rem" }}>
-                <StatCard label="Opening" value={formatNumber(daily.data.summary.openingStockLitres, " L")} accent="brand" icon={ICONS.droplet} />
-                <StatCard label="Purchased" value={formatNumber(daily.data.summary.purchasedLitres, " L")} accent="fuel" icon={ICONS.cart} />
-                <StatCard label="Allocated" value={formatNumber(daily.data.summary.allocatedLitres, " L")} accent="info" icon={ICONS.arrowOut} />
+                <StatCard label="Diesel Opening" value={formatNumber(daily.data.summary.openingDieselStockLitres, " L")} accent="fuel" icon={ICONS.droplet} />
+                <StatCard label="Petrol Opening" value={formatNumber(daily.data.summary.openingPetrolStockLitres, " L")} accent="info" icon={ICONS.droplet} />
+                <StatCard label="Diesel Purchased" value={formatNumber(daily.data.summary.dieselPurchasedLitres, " L")} accent="fuel" icon={ICONS.cart} />
+                <StatCard label="Petrol Purchased" value={formatNumber(daily.data.summary.petrolPurchasedLitres, " L")} accent="info" icon={ICONS.cart} />
+                <StatCard label="Diesel Allocated" value={formatNumber(daily.data.summary.dieselAllocatedLitres, " L")} accent="fuel" icon={ICONS.arrowOut} />
+                <StatCard label="Petrol Allocated" value={formatNumber(daily.data.summary.petrolAllocatedLitres, " L")} accent="info" icon={ICONS.arrowOut} />
               </div>
               <div className="button-row">
                 <a className="button" href={`/api/reports/daily/export?date=${dailyDate}`}>
@@ -155,8 +169,12 @@ export function ReportsClient() {
           {monthly.data ? (
             <>
               <div className="grid three" style={{ marginTop: "1rem" }}>
-                <StatCard label="Closing" value={formatNumber(monthly.data.summary.closingStockLitres, " L")} accent="brand" icon={ICONS.lock} />
-                <StatCard label="Cost" value={`$${formatNumber(monthly.data.summary.purchaseCost)}`} accent="fuel" icon={ICONS.dollar} />
+                <StatCard label="Diesel Closing" value={formatNumber(monthly.data.summary.closingDieselStockLitres, " L")} accent="fuel" icon={ICONS.lock} />
+                <StatCard label="Petrol Closing" value={formatNumber(monthly.data.summary.closingPetrolStockLitres, " L")} accent="info" icon={ICONS.lock} />
+                <StatCard label="Diesel Cost" value={`$${formatNumber(monthly.data.summary.dieselPurchaseCost)}`} accent="fuel" icon={ICONS.dollar} />
+                <StatCard label="Petrol Cost" value={`$${formatNumber(monthly.data.summary.petrolPurchaseCost)}`} accent="info" icon={ICONS.dollar} />
+                <StatCard label="Diesel Allocated" value={formatNumber(monthly.data.summary.dieselAllocatedLitres, " L")} accent="fuel" icon={ICONS.arrowOut} />
+                <StatCard label="Petrol Allocated" value={formatNumber(monthly.data.summary.petrolAllocatedLitres, " L")} accent="info" icon={ICONS.arrowOut} />
                 <StatCard label="Anomalies" value={monthly.data.summary.anomalyCount} accent="alert" icon={ICONS.alert} />
               </div>
               <div className="button-row">
@@ -177,4 +195,3 @@ export function ReportsClient() {
     </>
   );
 }
-

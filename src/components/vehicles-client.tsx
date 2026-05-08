@@ -34,6 +34,7 @@ type Vehicle = {
 
 type VehiclesResponse = { vehicles: Vehicle[] };
 type DriversResponse = { drivers: Driver[] };
+const FUEL_TYPES = ["Diesel", "Petrol"] as const;
 
 export function VehiclesClient() {
   const user = useSessionUser();
@@ -123,6 +124,7 @@ export function VehiclesClient() {
   const vehicleColumns: ColumnDef<Vehicle>[] = [
     { header: "Registration", accessorKey: "registrationNumber" },
     { header: "Vehicle", cell: ({ row }) => `${row.original.make} ${row.original.model}` },
+    { header: "Fuel", cell: ({ row }) => <span className="badge ok">{row.original.fuelType}</span> },
     { header: "Department", accessorKey: "department" },
     { header: "Driver", cell: ({ row }) => row.original.driver?.name ?? "Unassigned" },
     { header: "Expected", cell: ({ row }) => formatNumber(row.original.expectedKmPerLitre, " km/L") },
@@ -259,7 +261,13 @@ export function VehiclesClient() {
                 </div>
                 <div className="field">
                   <label>Fuel type</label>
-                  <input name="fuelType" defaultValue="Diesel" required />
+                  <select name="fuelType" defaultValue="Diesel" required>
+                    {FUEL_TYPES.map((fuelType) => (
+                      <option value={fuelType} key={fuelType}>
+                        {fuelType}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="field">
                   <label>Tank capacity (L)</label>
@@ -367,7 +375,13 @@ export function VehiclesClient() {
                   </div>
                   <div className="field">
                     <label>Fuel type</label>
-                    <input name="fuelType" defaultValue={editingVehicle.fuelType} required />
+                    <select name="fuelType" defaultValue={editingVehicle.fuelType} required>
+                      {FUEL_TYPES.map((fuelType) => (
+                        <option value={fuelType} key={fuelType}>
+                          {fuelType}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div className="field">
                     <label>Tank capacity (L)</label>

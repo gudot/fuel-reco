@@ -14,6 +14,7 @@ export const loginSchema = z.object({
 });
 
 export const roleSchema = z.enum(["ADMIN", "ACCOUNTANT", "OPERATIONS"]);
+export const fuelTypeSchema = z.enum(["Diesel", "Petrol"]);
 
 export const userCreateSchema = z.object({
   name: z.string().min(2),
@@ -46,7 +47,7 @@ export const vehicleCreateSchema = z.object({
   make: z.string().min(2),
   model: z.string().min(1),
   department: z.string().min(2),
-  fuelType: z.string().min(2).default("Diesel"),
+  fuelType: fuelTypeSchema.default("Diesel"),
   tankCapacityLitres: z.preprocess(emptyToUndefined, z.coerce.number().positive().optional()),
   expectedKmPerLitre: z.coerce.number().positive(),
   anomalyTolerancePercent: z.coerce.number().min(1).max(100).default(15),
@@ -62,6 +63,7 @@ export const vehicleUpdateSchema = vehicleCreateSchema.partial().extend({
 export const fuelPurchaseCreateSchema = z.object({
   supplier: z.string().min(2),
   invoiceNumber: z.preprocess(emptyToUndefined, z.string().min(2).optional()),
+  fuelType: fuelTypeSchema.default("Diesel"),
   purchasedAt: z.coerce.date(),
   litres: z.coerce.number().positive(),
   unitCost: z.coerce.number().nonnegative(),

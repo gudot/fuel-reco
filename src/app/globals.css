@@ -44,7 +44,7 @@ body {
      radial-gradient(circle at 50% 80%, rgba(74, 158, 255, 0.06) 0%, transparent 40%),
      linear-gradient(135deg, #fff7df 0%, #eef7ef 40%, #f0f6ff 70%, #f4efe2 100%);
    background-attachment: fixed;
-   font-family: "Aptos Display", "Segoe UI", Verdana, sans-serif;
+   font-family: var(--font-app), "Segoe UI", Verdana, sans-serif;
    font-size: 14px;
    font-weight: 300;
 }
@@ -840,17 +840,29 @@ button {
   overflow: visible;
 }
 
-.trend-area {
-  fill: url("#allocationTrendFill");
-}
-
 .trend-line {
   fill: none;
-  stroke: var(--brand);
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 4;
-  filter: drop-shadow(0 4px 8px rgba(13, 92, 77, 0.16));
+}
+
+.trend-area.diesel {
+  fill: url("#dieselTrendFill");
+}
+
+.trend-area.petrol {
+  fill: url("#petrolTrendFill");
+}
+
+.trend-line.diesel {
+  stroke: var(--fuel);
+  filter: drop-shadow(0 4px 8px rgba(243, 180, 63, 0.18));
+}
+
+.trend-line.petrol {
+  stroke: var(--accent-sky);
+  filter: drop-shadow(0 4px 8px rgba(74, 158, 255, 0.18));
 }
 
 .trend-point {
@@ -860,9 +872,44 @@ button {
   transition: r 0.2s ease, filter 0.2s ease;
 }
 
+.trend-point.petrol {
+  fill: var(--accent-sky);
+}
+
 .trend-point:hover {
   filter: drop-shadow(0 3px 8px rgba(243, 180, 63, 0.36));
   r: 5.5;
+}
+
+.trend-legend {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-top: 0.5rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.trend-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.trend-legend i {
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 999px;
+}
+
+.trend-legend i.diesel {
+  background: var(--fuel);
+}
+
+.trend-legend i.petrol {
+  background: var(--accent-sky);
 }
 
 .footer-brand-copy:hover .footer-developer-credit {

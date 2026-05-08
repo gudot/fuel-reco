@@ -41,7 +41,7 @@ export async function POST(request: Request) {
       action: "CREATE",
       entity: "FuelPurchase",
       entityId: purchase.id,
-      metadata: { litres: payload.litres, supplier: payload.supplier }
+      metadata: { fuelType: payload.fuelType, litres: payload.litres, supplier: payload.supplier }
     });
 
     return NextResponse.json({ purchase: serializePurchase(purchase) }, { status: 201 });
