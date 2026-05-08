@@ -18,10 +18,14 @@ export type SelectOption = {
 };
 
 export type DashboardSummary = {
-  currentStockLitres: number;
-  monthPurchasedLitres: number;
-  monthAllocatedLitres: number;
-  todayAllocatedLitres: number;
+  dieselStockLitres: number;
+  petrolStockLitres: number;
+  monthDieselPurchasedLitres: number;
+  monthPetrolPurchasedLitres: number;
+  monthDieselAllocatedLitres: number;
+  monthPetrolAllocatedLitres: number;
+  todayDieselAllocatedLitres: number;
+  todayPetrolAllocatedLitres: number;
   activeVehicles: number;
   openAnomalies: number;
 };
@@ -29,6 +33,7 @@ export type DashboardSummary = {
 export type ReconciliationRow = {
   vehicleId: string;
   registrationNumber: string;
+  fuelType: string;
   driverName: string;
   department: string;
   expectedKmPerLitre: number;

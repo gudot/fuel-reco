@@ -43,7 +43,7 @@ export function serializePurchase(purchase: FuelPurchase & { createdBy?: Pick<Us
 
 export function serializeAllocation(
   allocation: FuelAllocation & {
-    vehicle?: Pick<Vehicle, "registrationNumber">;
+    vehicle?: Pick<Vehicle, "registrationNumber" | "fuelType">;
     recordedBy?: Pick<User, "name" | "email">;
   }
 ) {

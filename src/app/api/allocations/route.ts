@@ -14,7 +14,7 @@ export async function GET() {
     await requireApiUser();
     const allocations = await prisma.fuelAllocation.findMany({
       include: {
-        vehicle: { select: { registrationNumber: true } },
+        vehicle: { select: { registrationNumber: true, fuelType: true } },
         recordedBy: { select: { name: true, email: true } }
       },
       orderBy: { issuedAt: "desc" },
@@ -31,10 +31,20 @@ export async function POST(request: Request) {
   try {
     const user = await requireApiUser(["ADMIN", "ACCOUNTANT"]);
     const payload = fuelAllocationCreateSchema.parse(await request.json());
-    const stockBefore = await getCurrentStockLitres();
+    const vehicle = await prisma.vehicle.findUnique({
+      where: { id: payload.vehicleId },
+      select: { id: true, fuelType: true, registrationNumber: true }
+    });
+
+    if (!vehicle) {
+      throw new HttpError(404, "Vehicle not found.");
+    }
+
+    const stockBefore = await getCurrentStockLitres(vehicle.fuelType);
 
     if (payload.litres > stockBefore) {
-      throw new HttpError(409, "Fuel allocation exceeds available stock.", {
+      throw new HttpError(409, `${vehicle.fuelType} allocation exceeds available stock.`, {
+        fuelType: vehicle.fuelType,
         requestedLitres: payload.litres,
         availableLitres: stockBefore
       });
@@ -44,11 +54,12 @@ export async function POST(request: Request) {
       const created = await tx.fuelAllocation.create({
         data: {
           ...payload,
+          fuelType: vehicle.fuelType,
           remainingStockLitres: roundNumber(stockBefore - payload.litres),
           recordedById: user.id
         },
         include: {
-          vehicle: { select: { registrationNumber: true } },
+          vehicle: { select: { registrationNumber: true, fuelType: true } },
           recordedBy: { select: { name: true, email: true } }
         }
       });
@@ -68,6 +79,7 @@ export async function POST(request: Request) {
       entityId: allocation.id,
       metadata: {
         vehicleId: payload.vehicleId,
+        fuelType: vehicle.fuelType,
         litres: payload.litres,
         remainingStockLitres: toNumber(allocation.remainingStockLitres)
       }

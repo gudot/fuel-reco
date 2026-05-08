@@ -9,6 +9,7 @@ type Purchase = {
   id: string;
   supplier: string;
   invoiceNumber: string | null;
+  fuelType: string;
   purchasedAt: string;
   litres: number;
   unitCost: number;
@@ -23,6 +24,7 @@ const columns: ColumnDef<Purchase>[] = [
   { header: "Date", cell: ({ row }) => formatDate(row.original.purchasedAt) },
   { header: "Supplier", accessorKey: "supplier" },
   { header: "Invoice", cell: ({ row }) => row.original.invoiceNumber ?? "N/A" },
+  { header: "Fuel", cell: ({ row }) => <span className="badge ok">{row.original.fuelType}</span> },
   { header: "Litres", cell: ({ row }) => formatNumber(row.original.litres, " L") },
   { header: "Unit Cost", cell: ({ row }) => `$${formatNumber(row.original.unitCost)}` },
   { header: "Total", cell: ({ row }) => `$${formatNumber(row.original.totalCost)}` },
@@ -73,6 +75,13 @@ export function PurchasesClient() {
               <div className="field">
                 <label>Purchase date</label>
                 <input name="purchasedAt" type="datetime-local" required />
+              </div>
+              <div className="field">
+                <label>Fuel type</label>
+                <select name="fuelType" defaultValue="Diesel" required>
+                  <option value="Diesel">Diesel</option>
+                  <option value="Petrol">Petrol</option>
+                </select>
               </div>
               <div className="field">
                 <label>Litres</label>

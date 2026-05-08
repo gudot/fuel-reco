@@ -65,7 +65,7 @@ async function main() {
       make: "Nissan",
       model: "NP300",
       department: "Deliveries",
-      fuelType: "Diesel",
+      fuelType: "Petrol",
       tankCapacityLitres: 75,
       expectedKmPerLitre: 8.8,
       anomalyTolerancePercent: 12,
@@ -81,6 +81,7 @@ async function main() {
         {
           supplier: "TotalEnergies Zimbabwe",
           invoiceNumber: "INV-FUEL-1001",
+          fuelType: "Diesel",
           purchasedAt: new Date("2026-04-01T08:00:00"),
           litres: 2500,
           unitCost: 1.54,
@@ -91,6 +92,7 @@ async function main() {
         {
           supplier: "Puma Energy",
           invoiceNumber: "INV-FUEL-1002",
+          fuelType: "Petrol",
           purchasedAt: new Date("2026-04-12T10:30:00"),
           litres: 1200,
           unitCost: 1.56,
@@ -108,6 +110,7 @@ async function main() {
       data: [
         {
           vehicleId: vehicleOne.id,
+          fuelType: "Diesel",
           issuedAt: new Date("2026-04-13T09:00:00"),
           litres: 55,
           odometerKm: 63020,
@@ -119,6 +122,7 @@ async function main() {
         },
         {
           vehicleId: vehicleTwo.id,
+          fuelType: "Petrol",
           issuedAt: new Date("2026-04-14T11:15:00"),
           litres: 70,
           odometerKm: 82300,

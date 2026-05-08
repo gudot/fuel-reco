@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 import { apiFetch, formatDate, formatNumber, formToObject } from "@/lib/client-api";
@@ -11,6 +12,7 @@ type Vehicle = {
   registrationNumber: string;
   make: string;
   model: string;
+  fuelType: string;
   currentOdometerKm: number | null;
 };
 
@@ -22,8 +24,9 @@ type Allocation = {
   voucherNumber: string | null;
   purpose: string;
   destination: string | null;
+  fuelType: string;
   remainingStockLitres: number;
-  vehicle?: { registrationNumber: string };
+  vehicle?: { registrationNumber: string; fuelType: string };
   recordedBy?: { name: string; email: string };
 };
 
@@ -33,6 +36,7 @@ type AllocationsResponse = { allocations: Allocation[] };
 const columns: ColumnDef<Allocation>[] = [
   { header: "Date", cell: ({ row }) => formatDate(row.original.issuedAt) },
   { header: "Vehicle", cell: ({ row }) => row.original.vehicle?.registrationNumber ?? "Unknown" },
+  { header: "Fuel", cell: ({ row }) => <span className="badge ok">{row.original.fuelType}</span> },
   { header: "Voucher", cell: ({ row }) => row.original.voucherNumber ?? "N/A" },
   { header: "Litres", cell: ({ row }) => formatNumber(row.original.litres, " L") },
   { header: "Odometer", cell: ({ row }) => formatNumber(row.original.odometerKm, " km") },
@@ -45,6 +49,7 @@ export function AllocationsClient() {
   const user = useSessionUser();
   const canIssueFuel = user.role === "ADMIN" || user.role === "ACCOUNTANT";
   const queryClient = useQueryClient();
+  const [selectedVehicleId, setSelectedVehicleId] = useState("");
   const vehicles = useQuery({ queryKey: ["vehicles"], queryFn: () => apiFetch<VehiclesResponse>("/api/vehicles") });
   const allocations = useQuery({
     queryKey: ["allocations"],
@@ -64,8 +69,15 @@ export function AllocationsClient() {
   function submitAllocation(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
-    createAllocation.mutate(formToObject(form), { onSuccess: () => form.reset() });
+    createAllocation.mutate(formToObject(form), {
+      onSuccess: () => {
+        form.reset();
+        setSelectedVehicleId("");
+      }
+    });
   }
+
+  const selectedVehicle = vehicles.data?.vehicles.find((vehicle) => vehicle.id === selectedVehicleId);
 
   return (
     <>
@@ -84,16 +96,20 @@ export function AllocationsClient() {
               <div className="form-grid">
                 <div className="field">
                   <label>Vehicle</label>
-                  <select name="vehicleId" required defaultValue="">
+                  <select name="vehicleId" required value={selectedVehicleId} onChange={(event) => setSelectedVehicleId(event.target.value)}>
                     <option value="" disabled>
                       Select vehicle
                     </option>
                     {vehicles.data?.vehicles.map((vehicle) => (
                       <option value={vehicle.id} key={vehicle.id}>
-                        {vehicle.registrationNumber} · {vehicle.make} {vehicle.model}
+                        {vehicle.registrationNumber} - {vehicle.make} {vehicle.model} - {vehicle.fuelType}
                       </option>
                     ))}
                   </select>
+                </div>
+                <div className="field">
+                  <label>Fuel type</label>
+                  <input value={selectedVehicle?.fuelType ?? ""} readOnly placeholder="Select a vehicle" />
                 </div>
                 <div className="field">
                   <label>Issue date</label>

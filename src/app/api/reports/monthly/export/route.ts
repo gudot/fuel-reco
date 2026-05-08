@@ -9,6 +9,11 @@ import { writeAuditLog } from "@/lib/audit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+const FUEL_TYPES = ["Diesel", "Petrol"] as const;
+
+function fuelSum(rows: Array<{ fuelType: string; _sum: { litres?: unknown; totalCost?: unknown } }>, fuelType: string, field: "litres" | "totalCost") {
+  return roundNumber(toNumber(rows.find((row) => row.fuelType === fuelType)?._sum[field]));
+}
 
 export async function GET(request: Request) {
   try {
@@ -20,21 +25,26 @@ export async function GET(request: Request) {
     const end = endOfMonth(month);
     const label = formatMonthLabel(start);
 
-    const [openingStock, purchasesAgg, allocationsAgg, reconciliation] = await Promise.all([
-      getStockBefore(start),
-      prisma.fuelPurchase.aggregate({
-        where: { purchasedAt: { gte: start, lt: end } },
+    const [openingDieselStock, openingPetrolStock, purchasesAgg, allocationsAgg, reconciliation] = await Promise.all([
+      getStockBefore(start, "Diesel"),
+      getStockBefore(start, "Petrol"),
+      prisma.fuelPurchase.groupBy({
+        by: ["fuelType"],
+        where: { fuelType: { in: [...FUEL_TYPES] }, purchasedAt: { gte: start, lt: end } },
         _sum: { litres: true, totalCost: true }
       }),
-      prisma.fuelAllocation.aggregate({
-        where: { issuedAt: { gte: start, lt: end } },
+      prisma.fuelAllocation.groupBy({
+        by: ["fuelType"],
+        where: { fuelType: { in: [...FUEL_TYPES] }, issuedAt: { gte: start, lt: end } },
         _sum: { litres: true }
       }),
       getReconciliationRows(start, end)
     ]);
 
-    const purchasedLitres = toNumber(purchasesAgg._sum.litres);
-    const allocatedLitres = toNumber(allocationsAgg._sum.litres);
+    const dieselPurchasedLitres = fuelSum(purchasesAgg, "Diesel", "litres");
+    const petrolPurchasedLitres = fuelSum(purchasesAgg, "Petrol", "litres");
+    const dieselAllocatedLitres = fuelSum(allocationsAgg, "Diesel", "litres");
+    const petrolAllocatedLitres = fuelSum(allocationsAgg, "Petrol", "litres");
     const workbook = new ExcelJS.Workbook();
     workbook.creator = "First Pack Fuel Reconciliation";
     workbook.created = new Date();
@@ -46,17 +56,23 @@ export async function GET(request: Request) {
     ];
     summary.addRows([
       { metric: "Month", value: label },
-      { metric: "Opening stock (L)", value: openingStock },
-      { metric: "Purchased (L)", value: roundNumber(purchasedLitres) },
-      { metric: "Allocated (L)", value: roundNumber(allocatedLitres) },
-      { metric: "Closing stock (L)", value: roundNumber(openingStock + purchasedLitres - allocatedLitres) },
-      { metric: "Purchase cost", value: roundNumber(toNumber(purchasesAgg._sum.totalCost)) },
+      { metric: "Opening diesel stock (L)", value: openingDieselStock },
+      { metric: "Opening petrol stock (L)", value: openingPetrolStock },
+      { metric: "Diesel purchased (L)", value: dieselPurchasedLitres },
+      { metric: "Petrol purchased (L)", value: petrolPurchasedLitres },
+      { metric: "Diesel allocated (L)", value: dieselAllocatedLitres },
+      { metric: "Petrol allocated (L)", value: petrolAllocatedLitres },
+      { metric: "Closing diesel stock (L)", value: roundNumber(openingDieselStock + dieselPurchasedLitres - dieselAllocatedLitres) },
+      { metric: "Closing petrol stock (L)", value: roundNumber(openingPetrolStock + petrolPurchasedLitres - petrolAllocatedLitres) },
+      { metric: "Diesel purchase cost", value: fuelSum(purchasesAgg, "Diesel", "totalCost") },
+      { metric: "Petrol purchase cost", value: fuelSum(purchasesAgg, "Petrol", "totalCost") },
       { metric: "Anomalies", value: reconciliation.filter((row) => row.anomaly).length }
     ]);
 
     const reconciliationSheet = workbook.addWorksheet("Reconciliation");
     reconciliationSheet.columns = [
       { header: "Vehicle", key: "vehicle", width: 16 },
+      { header: "Fuel", key: "fuelType", width: 14 },
       { header: "Driver", key: "driver", width: 24 },
       { header: "Department", key: "department", width: 20 },
       { header: "Expected KM/L", key: "expectedKmPerLitre", width: 16 },
@@ -72,6 +88,7 @@ export async function GET(request: Request) {
     reconciliationSheet.addRows(
       reconciliation.map((row) => ({
         vehicle: row.registrationNumber,
+        fuelType: row.fuelType,
         driver: row.driverName,
         department: row.department,
         expectedKmPerLitre: row.expectedKmPerLitre,
